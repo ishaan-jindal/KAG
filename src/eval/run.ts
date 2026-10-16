@@ -152,7 +152,7 @@ async function runEntry(entry: SuiteEntry, dry: boolean): Promise<EntryResult> {
   });
 
   const got = renderOutcome(result.outcome);
-  const want = `${entry.expect.verdict} (${entry.expect.mode})`;
+  const want = `${entry.expect.verdict}(${entry.expect.mode})`;
   const sigs = result.attempts.flatMap((a) => a.sigs);
 
   const verdictOk = got === want;

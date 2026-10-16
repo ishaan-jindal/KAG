@@ -92,8 +92,11 @@ export function toOutcome(g: GateVerdict, sig: string): Outcome {
   return { verdict: "cannot-repro", mode: g };
 }
 
+// Verdict wording is the frozen vocabulary from TEAM.md and matches
+// demo/sample-run.jsonl: no space between verdict and mode. README:85 writes
+// "cannot-repro (flaky)" with a space — lane 4 owns README, flagged there.
 export function renderOutcome(o: Outcome): string {
-  return `${o.verdict} (${o.mode})`;
+  return `${o.verdict}(${o.mode})`;
 }
 
 // --- erasable-only validation ----------------------------------------------
@@ -330,7 +333,8 @@ export async function runLoop(opts: LoopOptions): Promise<LoopResult> {
     writeFileSync(entry, generated.source);
 
     const sigs: string[] = [];
-    for (let run = 1; run <= RUNS_PER_ATTEMPT; run++) {
+    // 0-indexed to match demo/sample-run.jsonl, which lane 4's demo consumes.
+    for (let run = 0; run < RUNS_PER_ATTEMPT; run++) {
       const paths = resolveSandboxPaths(dir, entry);
       const result = await opts.sandbox.runSandbox(paths.entry, paths.dir);
       const sig = opts.sandbox.signature(result);
@@ -509,7 +513,7 @@ export async function replayLog(
   writeFileSync(entry, target.source);
 
   const rerun: string[] = [];
-  for (let run = 1; run <= RUNS_PER_ATTEMPT; run++) {
+  for (let run = 0; run < RUNS_PER_ATTEMPT; run++) {
     const paths = resolveSandboxPaths(dir, entry);
     rerun.push(sandbox.signature(await sandbox.runSandbox(paths.entry, paths.dir)));
   }
