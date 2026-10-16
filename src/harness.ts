@@ -5,11 +5,11 @@
 // implementation before lane 1 lands. main() wires the real ones. Nothing here
 // mutates lane 1 / lane 3 / lane 4 files.
 
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import type { GateVerdict } from "./verify.ts";
+import { mode as gateMode, type GateVerdict } from "./verify.ts";
 import type { RunResult } from "./tools.ts";
 
 export const MAX_ATTEMPTS = 3;
@@ -50,6 +50,21 @@ export type Sandbox = {
   gate: (sigs: [string, string, string]) => GateVerdict;
 };
 
+/**
+ * Node's ESM loader calls fs.realpathSync on the entry BEFORE the --permission
+ * check runs, and the check is applied to the RESOLVED path. runSandbox
+ * allowlists `attemptDir` verbatim, so wherever that path contains a symlink
+ * (/tmp -> /private/tmp, /var/folders -> /private/var/folders) the child dies
+ * with ERR_ACCESS_DENIED in fs.realpathSync before any user code executes.
+ *
+ * Resolving here keeps lane 2 correct without reimplementing lane 1's sandbox.
+ * The underlying bug still breaks lane 1's own self-check (node
+ * src/lane1.check.ts) and any other caller, so it is reported, not hidden.
+ */
+function resolveSandboxPaths(dir: string, entry: string): { dir: string; entry: string } {
+  return { dir: realpathSync(dir), entry: realpathSync(entry) };
+}
+
 export type Attempt = {
   attempt: number;
   source: string;
@@ -71,7 +86,9 @@ export type LoopResult = {
 // --- verdict mapping --------------------------------------------------------
 
 export function toOutcome(g: GateVerdict, sig: string): Outcome {
-  if (g === "deterministic") return { verdict: "deterministic", mode: sig === "TIMEOUT" ? "hang" : "crash" };
+  // mode() is lane 1's helper for the crash/hang split — reuse it so a change
+  // there propagates here instead of forking a second copy of the rule.
+  if (g === "deterministic") return { verdict: "deterministic", mode: gateMode(sig) };
   return { verdict: "cannot-repro", mode: g };
 }
 
@@ -314,7 +331,8 @@ export async function runLoop(opts: LoopOptions): Promise<LoopResult> {
 
     const sigs: string[] = [];
     for (let run = 1; run <= RUNS_PER_ATTEMPT; run++) {
-      const result = await opts.sandbox.runSandbox(entry, dir);
+      const paths = resolveSandboxPaths(dir, entry);
+      const result = await opts.sandbox.runSandbox(paths.entry, paths.dir);
       const sig = opts.sandbox.signature(result);
       sigs.push(sig);
       emit({ type: "run", attempt, run, signature: sig, ts: now() });
@@ -492,7 +510,8 @@ export async function replayLog(
 
   const rerun: string[] = [];
   for (let run = 1; run <= RUNS_PER_ATTEMPT; run++) {
-    rerun.push(sandbox.signature(await sandbox.runSandbox(entry, dir)));
+    const paths = resolveSandboxPaths(dir, entry);
+    rerun.push(sandbox.signature(await sandbox.runSandbox(paths.entry, paths.dir)));
   }
   return {
     attempt: target.attempt,
