@@ -129,7 +129,7 @@ Headless API: `POST /run { "issue": "..." }`. GPU swap: `export DO_INFERENCE_URL
 
 ## Status
 
-Active multi-lane implementation in progress per [TEAM.md](TEAM.md):
+All four lanes landed and verified (lane-1 self-check green, dry eval 5/5 score 100, server e2e over every route):
 - **Lane 1 (Sandbox + Gate):** `src/tools.ts`, `src/verify.ts`
 - **Lane 2 (Loop + Eval):** `src/harness.ts`, `src/eval/`
 - **Lane 3 (UI + Deploy):** `src/server.ts`, `Dockerfile`, `app.yaml`
