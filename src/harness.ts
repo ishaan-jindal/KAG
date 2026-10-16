@@ -5,9 +5,18 @@
 // implementation before lane 1 lands. main() wires the real ones. Nothing here
 // mutates lane 1 / lane 3 / lane 4 files.
 
-import { appendFileSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { mode as gateMode, type GateVerdict } from "./verify.ts";
 import type { RunResult } from "./tools.ts";
@@ -491,7 +500,19 @@ export async function readIssue(ref: string): Promise<string> {
 // Re-runs the *stored* source and diffs signatures against what was logged, so
 // "replay integrity" means the gate is reproducible, not just re-readable.
 
-export type ReplayResult = { attempt: number; stored: string[]; rerun: string[]; identical: boolean };
+export type ReplayResult = {
+  attempt: number | null;
+  stored: string[];
+  rerun: string[];
+  /**
+   * null when the run has no repro to replay (an honest negative, or the model
+   * declared NO_REPRO). Consumers must treat `replayable: false` as
+   * "not applicable", NOT as a determinism failure.
+   */
+  identical: boolean | null;
+  replayable: boolean;
+  reason?: string;
+};
 
 export async function replayLog(
   events: LogEvent[],
@@ -509,7 +530,24 @@ export async function replayLog(
     .filter((e): e is Extract<LogEvent, { type: "run" }> => e.type === "run" && e.attempt === target.attempt)
     .map((r) => r.signature);
 
-  const dir = join(workDir, `replay-${target.attempt}`);
+  // A cannot-repro has no sandbox runs recorded for the winning attempt, so
+  // there is nothing to compare. Reporting identical:false here would show a
+  // red mismatch for a run that never claimed determinism.
+  if (stored.length === 0) {
+    return {
+      attempt,
+      stored,
+      rerun: [],
+      identical: null,
+      replayable: false,
+      reason: "no sandbox runs recorded for this attempt (no repro was emitted)",
+    };
+  }
+
+  // A per-invocation directory: a fixed name would let two concurrent --replay
+  // runs (lane 3's /replay can overlap) overwrite each other's repro.ts, and
+  // would leave stale modules from an earlier replay lying around for the next.
+  const dir = join(workDir, `replay-${target.attempt}-${randomUUID()}`);
   mkdirSync(dir, { recursive: true });
   // The repro may import the modules it was generated against; without them a
   // replay fails to load and the integrity check is meaningless.
@@ -527,19 +565,58 @@ export async function replayLog(
     stored,
     rerun,
     identical: stored.join("|") === rerun.join("|"),
+    replayable: true,
   };
 }
 
 // --- CLI --------------------------------------------------------------------
 
-function parseArgs(argv: string[]): { issue?: string; replay?: string; id?: string } {
-  const out: { issue?: string; replay?: string; id?: string } = {};
+function parseArgs(argv: string[]): {
+  issue?: string;
+  replay?: string;
+  id?: string;
+  modules?: string;
+} {
+  const out: { issue?: string; replay?: string; id?: string; modules?: string } = {};
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--issue") out.issue = argv[++i];
     else if (argv[i] === "--replay") out.replay = argv[++i];
     // Lane 3 supplies the id so its UI can tail runs/<id>.jsonl while the run is
     // still in flight. Without it the id is guessed and the tail 404s.
     else if (argv[i] === "--id") out.id = argv[++i];
+    else if (argv[i] === "--modules") out.modules = argv[++i];
+  }
+  return out;
+}
+
+// --id becomes a path segment in runs/<id>.jsonl and repros/<id>.repro.ts, so
+// it must not contain separators or dot segments. Must start alphanumeric,
+// which alone rules out "..", "/etc/x" and absolute paths.
+const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+
+function assertSafeId(id: string): string {
+  if (!SAFE_ID.test(id)) {
+    throw new Error(
+      `invalid --id ${JSON.stringify(id)}: expected 1-64 chars, starting alphanumeric, ` +
+        `then [A-Za-z0-9._-] only (no slashes, no "..")`,
+    );
+  }
+  return id;
+}
+
+const MODULES_SUFFIX = ".modules";
+
+/** Modules a repro may import, persisted next to the run so --replay can restore them. */
+function modulesDirFor(id: string): string {
+  return join("runs", `${id}${MODULES_SUFFIX}`);
+}
+
+function readModuleDir(dir: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!existsSync(dir)) return out;
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith(".ts")) continue;
+    out[name] = readFileSync(join(dir, name), "utf8");
   }
   return out;
 }
@@ -550,7 +627,7 @@ function logTo(id: string, e: LogEvent): void {
 }
 
 async function main(): Promise<void> {
-  const { issue, replay, id: argvId } = parseArgs(process.argv.slice(2));
+  const { issue, replay, id: argvId, modules: argvModules } = parseArgs(process.argv.slice(2));
 
   const [{ runSandbox, signature }, { gate }] = await Promise.all([
     import("./tools.ts"),
@@ -559,32 +636,43 @@ async function main(): Promise<void> {
   const sandbox: Sandbox = { runSandbox, signature, gate };
 
   if (replay) {
-    const events = (readFileSync(`runs/${replay}.jsonl`, "utf8")
+    const rid = assertSafeId(replay);
+    const events = (readFileSync(`runs/${rid}.jsonl`, "utf8")
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l) as LogEvent));
-    const result = await replayLog(events, sandbox, tmpdir());
+    // Restore the modules this run was generated against, or a repro that
+    // imports one fails to load and reports a false mismatch.
+    const result = await replayLog(events, sandbox, tmpdir(), readModuleDir(modulesDirFor(rid)));
     console.log(JSON.stringify(result, null, 2));
-    if (!result.identical) process.exitCode = 1;
+    // replayable:false is "not applicable", not a failure.
+    if (result.replayable && !result.identical) process.exitCode = 1;
     return;
   }
 
   if (!issue) {
     throw new Error(
-      "usage: node src/harness.ts --issue <url|file> [--id <id>] [--replay <id>]",
+      "usage: node src/harness.ts --issue <url|file> [--id <id>] [--modules <dir>] [--replay <id>]",
     );
   }
   // --id wins so a caller that stages runs/<id>.issue.txt and tails
   // runs/<id>.jsonl finds both. Otherwise fall back to the GitHub issue number,
   // then a timestamp.
   const issueNum = issue.startsWith("http") ? parseIssueRef(issue)?.number : null;
-  const id = argvId ?? (issueNum ? String(issueNum) : Date.now().toString(36));
+  const id = assertSafeId(argvId ?? (issueNum ? String(issueNum) : Date.now().toString(36)));
 
   const body = await readIssue(issue);
+  const modules = argvModules ? readModuleDir(argvModules) : {};
   // Emitted immediately so a tailer sees the file exist before the first event.
   mkdirSync("runs", { recursive: true });
   mkdirSync("repros", { recursive: true });
-  const result = await runLoop({ id, issue: body, sandbox, onEvent: (e) => logTo(id, e) });
+  // Persist alongside the run so --replay can restore the same imports.
+  if (Object.keys(modules).length > 0) {
+    const mdir = modulesDirFor(id);
+    mkdirSync(mdir, { recursive: true });
+    for (const [name, src] of Object.entries(modules)) writeFileSync(join(mdir, name), src);
+  }
+  const result = await runLoop({ id, issue: body, modules, sandbox, onEvent: (e) => logTo(id, e) });
 
   if (result.repro !== null) {
     writeFileSync(`repros/${id}.repro.ts`, result.repro);
