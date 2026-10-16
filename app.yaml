@@ -1,6 +1,23 @@
 name: kag
+region: blr
 services:
   - name: api
     dockerfile_path: Dockerfile
+    github:
+      repo: ishaan-jindal/KAG
+      branch: main
+      deploy_on_push: true
     http_port: 8080
+    health_check:
+      http_path: /healthz
     instance_size_slug: apps-s-1vcpu-0.5gb
+    instance_count: 1
+    envs:
+      - key: DO_MODEL
+        value: openai-gpt-oss-120b
+        scope: RUN_TIME
+      # DO_INFERENCE_KEY is intentionally ABSENT from this spec: with
+      # deploy_on_push the repo is the source of truth, so any value committed
+      # here would overwrite the real secret on every push. Set it once in the
+      # DO App Platform console (Settings → env vars, type SECRET) and never
+      # commit it.
