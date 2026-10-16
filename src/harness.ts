@@ -532,11 +532,14 @@ export async function replayLog(
 
 // --- CLI --------------------------------------------------------------------
 
-function parseArgs(argv: string[]): { issue?: string; replay?: string } {
-  const out: { issue?: string; replay?: string } = {};
+function parseArgs(argv: string[]): { issue?: string; replay?: string; id?: string } {
+  const out: { issue?: string; replay?: string; id?: string } = {};
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--issue") out.issue = argv[++i];
     else if (argv[i] === "--replay") out.replay = argv[++i];
+    // Lane 3 supplies the id so its UI can tail runs/<id>.jsonl while the run is
+    // still in flight. Without it the id is guessed and the tail 404s.
+    else if (argv[i] === "--id") out.id = argv[++i];
   }
   return out;
 }
@@ -547,7 +550,7 @@ function logTo(id: string, e: LogEvent): void {
 }
 
 async function main(): Promise<void> {
-  const { issue, replay } = parseArgs(process.argv.slice(2));
+  const { issue, replay, id: argvId } = parseArgs(process.argv.slice(2));
 
   const [{ runSandbox, signature }, { gate }] = await Promise.all([
     import("./tools.ts"),
@@ -566,15 +569,24 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!issue) throw new Error("usage: node src/harness.ts --issue <url|file> [--replay <id>]");
+  if (!issue) {
+    throw new Error(
+      "usage: node src/harness.ts --issue <url|file> [--id <id>] [--replay <id>]",
+    );
+  }
+  // --id wins so a caller that stages runs/<id>.issue.txt and tails
+  // runs/<id>.jsonl finds both. Otherwise fall back to the GitHub issue number,
+  // then a timestamp.
   const issueNum = issue.startsWith("http") ? parseIssueRef(issue)?.number : null;
-  const id = issueNum ? String(issueNum) : Date.now().toString(36);
+  const id = argvId ?? (issueNum ? String(issueNum) : Date.now().toString(36));
 
   const body = await readIssue(issue);
+  // Emitted immediately so a tailer sees the file exist before the first event.
+  mkdirSync("runs", { recursive: true });
+  mkdirSync("repros", { recursive: true });
   const result = await runLoop({ id, issue: body, sandbox, onEvent: (e) => logTo(id, e) });
 
   if (result.repro !== null) {
-    mkdirSync("repros", { recursive: true });
     writeFileSync(`repros/${id}.repro.ts`, result.repro);
   }
 
@@ -583,9 +595,7 @@ async function main(): Promise<void> {
   console.log(summary);
   if (result.repro !== null) console.log(`repros/${id}.repro.ts`);
   console.log(`runs/${id}.jsonl`);
-  console.log(
-    `tokens in=${result.usage.tokensIn} out=${result.usage.tokensOut} model=${MODEL}`,
-  );
+  console.log(`tokens in=${result.usage.tokensIn} out=${result.usage.tokensOut} model=${MODEL}`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) await main();
