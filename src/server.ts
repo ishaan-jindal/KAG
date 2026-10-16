@@ -819,7 +819,7 @@ function handleRoot(res: ServerResponse): void {
     try { return JSON.stringify(value); } catch (err) { return String(value); }
   }
   function lineCount(src) {
-    // generate.source always ends in "\n" — don't count the trailing empty split.
+    // generate.source always ends with a newline — don't count the trailing empty split.
     var parts = String(src).split("\\n");
     if (parts.length > 0 && parts[parts.length - 1] === "") parts.pop();
     return parts.length;
