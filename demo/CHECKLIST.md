@@ -132,7 +132,7 @@ ollama run qwen2.5-coder:7b
 ### Zero-Code Env Swap
 ```bash
 # Point local or App Platform harness to droplet Ollama endpoint
-export DO_INFERENCE_URL="http://<DROPLET_PUBLIC_IP>:11434/v1"
+export DO_INFERENCE_URL="http://<DROPLET_PUBLIC_IP>:11434/v1/chat/completions"
 export DO_MODEL="qwen2.5-coder:7b"
 
 # Run harness

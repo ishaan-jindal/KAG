@@ -83,7 +83,7 @@ Closed verdict set only: `deterministic(crash|hang)` · `cannot-repro {no-failur
 2. Open 20-line `repro.ts` — the minimal promise
 3. Hit **replay** — identical sig
 4. Paste flaky race → `cannot-repro (flaky)` — the trust beat, never cut
-5. `export DO_INFERENCE_URL=http://<droplet>:11434/v1` → rerun on GPU Ollama
+5. `export DO_INFERENCE_URL=http://<droplet>:11434/v1/chat/completions` → rerun on GPU Ollama
 6. `doctl compute droplet delete` + cost receipt
 
 ## Repo layout
@@ -125,7 +125,7 @@ npm run eval
 npm start
 ```
 
-Headless API: `POST /run { "issue": "..." }`. GPU swap: `export DO_INFERENCE_URL=http://<droplet>:11434/v1`.
+Headless API: `POST /run { "issue": "..." }`. GPU swap: `export DO_INFERENCE_URL=http://<droplet>:11434/v1/chat/completions` (full endpoint path, not the base URL).
 
 ## Status
 

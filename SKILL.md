@@ -25,7 +25,7 @@ npm run kag -- --issue https://github.com/org/repo/issues/42
 ```
 
 Headless: `POST /run { issue }`. GPU swap:
-`export DO_INFERENCE_URL=http://<droplet>:11434/v1`.
+`export DO_INFERENCE_URL=http://<droplet>:11434/v1/chat/completions`.
 
 ## Inputs
 
