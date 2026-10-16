@@ -36,6 +36,10 @@ export type LogEvent =
   | {
       type: "final";
       verdict: string;
+      // `mode` is duplicated out of the verdict string so a consumer never has
+      // to parse it. src/server.ts (lane 3) already declared final.mode, so
+      // emitting it keeps the two sides compatible.
+      mode: Outcome["mode"];
       repro: string | null;
       attempt: number | null;
       kinds: string[];
@@ -365,6 +369,7 @@ export async function runLoop(opts: LoopOptions): Promise<LoopResult> {
   emit({
     type: "final",
     verdict: renderOutcome(outcome),
+    mode: outcome.mode,
     repro: winningAttempt === null ? null : `repros/${opts.id ?? "adhoc"}.repro.ts`,
     attempt: winningAttempt,
     kinds: attempts.map((a) => renderOutcome(a.outcome)),
