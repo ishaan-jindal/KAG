@@ -51,7 +51,7 @@ Contracts below are frozen — if you need to change one, announce it first.
 
 **Responsibilities:**
 - `SKILL.md` with fixed vocab: when-to-use / when-NOT (no security reports, no full-repo checkouts, no perf without a failing case), usage, inputs (`GITHUB_TOKEN` for issue API or raw file), output contract (exactly 2 artifacts, closed verdict set), honest-negative rule verbatim, cost + caps, one-line sandbox caveat
-- MIT `LICENSE`; README quickstart / cost table / scorecard updates
+- Apache-2.0 `LICENSE`; README quickstart / cost table / scorecard updates
 - `demo/` 6-beat checklist: deterministic crash → minimal repro → replay → **flaky `cannot-repro` (never cut)** → GPU env-var swap → droplet destroy + billing receipt; record video/GIF for async judging
 - Challenge entry: public repo, clean-clone run with only `DO_INFERENCE_KEY`/`DO_MODEL` set, open-weight only, sample `runs/*.jsonl` committed
 

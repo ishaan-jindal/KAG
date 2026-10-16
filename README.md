@@ -37,7 +37,7 @@ The model *is* the engine — generation, failure clustering, and the judge. No 
 | `src/server.ts` ~120 LOC | DEMO | `node:http` + SSE UI, no framework |
 | `src/eval/` ~50 LOC + data | CORE | 5 fixtures + `suite.json` + `run.ts` scorer |
 | `SKILL.md` | CORE | Agent Skill wrapper, closed verdict vocabulary |
-| `LICENSE` | CORE | MIT |
+| `LICENSE` | CORE | Apache-2.0 |
 
 ~550 LOC ceiling (core harness ~430 + UI ~120). Eval fixtures are data, not LOC. No Python. No LangChain. No vector DB.
 
@@ -97,7 +97,7 @@ src/server.ts       # HTTP + SSE UI, stdlib only
 src/eval/           # 5 fixtures + suite.json + run.ts scorer
 Dockerfile, app.yaml # App Platform container configuration
 demo/               # 6-beat checklist & runbook for judges
-LICENSE             # MIT License
+LICENSE             # Apache License 2.0
 TEAM.md             # Multi-lane responsibilities & frozen contracts
 ```
 
@@ -139,5 +139,5 @@ See [`demo/CHECKLIST.md`](demo/CHECKLIST.md) for the ~6-minute judge demonstrati
 
 ## License
 
-[MIT License](LICENSE) — Copyright (c) 2026 KAG contributors.
+[Apache License 2.0](LICENSE) — Copyright (c) 2026 KAG contributors.
 
