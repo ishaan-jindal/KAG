@@ -4,6 +4,8 @@
 
 Every maintainer burns hours just proving a bug is real. Logs pasted, steps missing, "works on my machine." KAG kills that: give it a GitHub issue, get back a minimal `repro.ts` that fails deterministically — or it tells you it can't.
 
+![KAG web UI — paste an issue, watch generate → 3 runs → verdict stream live](docs/ui-idle.png)
+
 ## How it works
 
 ```
