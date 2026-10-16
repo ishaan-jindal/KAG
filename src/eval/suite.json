@@ -1,0 +1,62 @@
+[
+  {
+    "id": "crash-deterministic",
+    "fixture": "fixtures/crash-deterministic.md",
+    "expect": {
+      "verdict": "deterministic",
+      "mode": "crash",
+      "sigContains": "TypeError",
+      "maxAttempts": 3,
+      "reproMaxLoc": 20,
+      "replay": true
+    }
+  },
+  {
+    "id": "flaky-race",
+    "fixture": "fixtures/flaky-race.md",
+    "expect": {
+      "verdict": "cannot-repro",
+      "mode": "flaky",
+      "sigContains": "RangeError",
+      "maxAttempts": 3,
+      "reproMaxLoc": 20,
+      "replay": true
+    }
+  },
+  {
+    "id": "volatile-trace",
+    "fixture": "fixtures/volatile-trace.md",
+    "expect": {
+      "verdict": "deterministic",
+      "mode": "crash",
+      "sigContains": "TypeError",
+      "maxAttempts": 3,
+      "reproMaxLoc": 20,
+      "replay": true
+    }
+  },
+  {
+    "id": "hang",
+    "fixture": "fixtures/hang.md",
+    "expect": {
+      "verdict": "deterministic",
+      "mode": "hang",
+      "sigContains": "TIMEOUT",
+      "maxAttempts": 3,
+      "reproMaxLoc": 20,
+      "replay": true
+    }
+  },
+  {
+    "id": "not-a-bug",
+    "fixture": "fixtures/not-a-bug.md",
+    "expect": {
+      "verdict": "cannot-repro",
+      "mode": "no-failure",
+      "sigContains": "NO_FAIL",
+      "maxAttempts": 3,
+      "reproMaxLoc": 20,
+      "replay": true
+    }
+  }
+]
