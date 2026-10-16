@@ -165,7 +165,7 @@ async function runEntry(entry: SuiteEntry, dry: boolean): Promise<EntryResult> {
   let replayOk = false;
   if (entry.expect.replay && result.repro !== null) {
     const replay = await replayLog(events, sandbox, workDir, modules);
-    replayOk = replay.identical;
+    replayOk = replay.replayable && replay.identical === true;
   }
 
   // A wrong-but-deterministic verdict and the expected one are both hard fails;
