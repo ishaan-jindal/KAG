@@ -1,7 +1,7 @@
 // Lane 2 — eval scorer.
 //
-// Drives the harness loop once per suite entry against the local reference impl
-// (./_ref/lane1.ts) + lane 1's real gate (../verify.ts), then scores:
+// Drives the harness loop once per suite entry against lane 1's real sandbox
+// (src/tools.ts) and gate (src/verify.ts), then scores:
 //
 //   60 verdict accuracy  15 minimality  15 attempt efficiency  10 replay integrity
 //
@@ -9,6 +9,7 @@
 // Diagnostic only: the number is for comparing models, not for gating a merge.
 
 import { readFile, appendFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -18,8 +19,8 @@ import {
   type LogEvent,
   type LoopResult,
 } from "../harness.ts";
+import { runSandbox, signature } from "../tools.ts";
 import { gate } from "../verify.ts";
-import * as ref from "./_ref/lane1.ts";
 
 const W_VERDICT = 60;
 const W_MINIMALITY = 15;
@@ -76,7 +77,27 @@ const DRY_SOURCES: Record<string, string> = {
   "not-a-bug": 'import { sum } from "./sum.ts";\nsum([1, 2, 3]);\n',
 };
 
-const sandbox = { runSandbox: ref.runSandbox, signature: ref.signature, gate };
+/**
+ * Lane 1's sandbox underpins every number this suite produces. Its self-check
+ * currently fails because runSandbox allowlists the attempt dir without
+ * resolving symlinks first, which breaks Node's realpath-before-permission
+ * check. Lane 2 compensates at the call site (see resolveSandboxPaths), so this
+ * is a loud warning rather than a hard stop — but it must not be ignored, since
+ * lane 3 calling runSandbox directly would hit it.
+ */
+function preflight(): void {
+  const res = spawnSync(process.execPath, ["src/lane1.check.ts"], { encoding: "utf8" });
+  if (res.status === 0) return;
+  process.stderr.write(
+    "WARNING: lane 1 sandbox self-check FAILED (node src/lane1.check.ts).\n" +
+      "  Lane 2 works around it by realpath()ing the attempt dir before calling\n" +
+      "  runSandbox, so the scores below are real. Lane 3 calling runSandbox\n" +
+      "  directly will not, and will see ERR_ACCESS_DENIED instead of a verdict.\n" +
+      `${(res.stdout ?? "").slice(0, 400)}\n\n`,
+  );
+}
+
+const sandbox = { runSandbox, signature, gate };
 
 function argOf(name: string, fallback: string): string {
   const i = process.argv.indexOf(name);
@@ -195,6 +216,7 @@ async function runEntryWithRetries(entry: SuiteEntry, dry: boolean): Promise<Ent
 }
 
 async function main(): Promise<void> {
+  if (!hasFlag("--no-preflight")) preflight();
   const model = argOf("--model", process.env.DO_MODEL ?? "openai-gpt-oss-120b");
   const dry = hasFlag("--dry");
   const only = argOf("--only", "");
