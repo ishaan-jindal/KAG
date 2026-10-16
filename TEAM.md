@@ -40,7 +40,7 @@ Contracts below are frozen — if you need to change one, announce it first.
 **Responsibilities:**
 - Stdlib-only `node:http` + SSE UI: `GET /` (form + `<pre>` stream + replay button) · `POST /run { issue, issueId? } → { id }` · `GET /events/:id` (tail JSONL as SSE) · `GET /repro/:id` · `GET /replay/:id`
 - Same `LogEvent` schema as JSONL — one schema, two sinks; polling fallback noted if SSE gets fiddly
-- Container: `node:24-slim`, `npm ci --omit=dev`, `CMD node src/server.ts`; `runs/` + `repros/` ephemeral (no Spaces — keeps always-on at $5)
+- Container: `node:26-slim`, `npm ci --omit=dev`, `CMD node src/server.ts`; `runs/` + `repros/` ephemeral (no Spaces — keeps always-on at $5)
 - Deploy to $5 App Platform (1 shared vCPU / 512 MiB — the cap that justifies lane 1's memory limit); never touch harness logic, shell out to lane 2
 
 **Done when:** browser shows generate → 3 runs → sig streaming live; deploy reachable by judges.
