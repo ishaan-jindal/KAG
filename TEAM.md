@@ -1,9 +1,9 @@
-# TEAM — KAG crew of 4
+# TEAM — KAG crew of 4 (all lanes landed ✅)
 
 Ownership is by file. No two people edit the same file without a PR review.
 Contracts below are frozen — if you need to change one, announce it first.
 
-## Lane 1 — Sandbox + Gate
+## Lane 1 — Sandbox + Gate ✅ landed
 
 **Owns:** `src/tools.ts`, `src/verify.ts`
 
@@ -18,14 +18,14 @@ Contracts below are frozen — if you need to change one, announce it first.
 
 **Done when:** inline thrower ×3 yields equal sigs with paths stripped; gate truth table passes; no LLM needed.
 
-## Lane 2 — Loop + Eval
+## Lane 2 — Loop + Eval ✅ landed
 
 **Owns:** `src/harness.ts`, `src/eval/`
 
 **Responsibilities:**
 - DO Serverless Inference call: `POST https://inference.do-ai.run/v1/chat/completions`, Bearer `DO_INFERENCE_KEY`, body `model` (default `openai-gpt-oss-120b`), `messages`, `max_completion_tokens` (not `max_tokens`), `temperature: 0.2`, 120s abort
 - 3 attempts × 3 runs retry loop with `describe(verdict)` feedback; `judge(prose)` display-only summary after `final`
-- JSONL log (`generate` with full source / `run` / `verdict` / `final`) to `runs/<id>.jsonl`; artifacts to `repros/<id>.repro.ts`; CLI `--issue <url|file>` + `--replay` (diff stored sig vs rerun)
+- JSONL log (`generate` with full source + model thinking / `run` / `verdict` / `final`) to `runs/<id>.jsonl`; artifacts to `repros/<id>.repro.ts`; CLI `--issue <url|file>` + `--id` + `--modules` + `--replay` (diff stored sig vs rerun)
 - Eval: 5 fixtures (`crash-deterministic`, `flaky-race`, `volatile-trace`, `hang`, `not-a-bug`) + `suite.json` (`verdict`, `mode`, `sigContains`, `maxAttempts`, `reproMaxLoc`, `replay`) + `run.ts` scorer (60/15/15/10) + `leaderboard.jsonl` telemetry
 - Generate erasable-only TS (no `enum`/namespaces — type stripping has no build step)
 
@@ -33,19 +33,19 @@ Contracts below are frozen — if you need to change one, announce it first.
 
 **Done when:** one real end-to-end run (~$0.01) + `npm run eval` green on hard contract + replay integrity holds.
 
-## Lane 3 — UI + Deploy
+## Lane 3 — UI + Deploy ✅ landed
 
 **Owns:** `src/server.ts`, `Dockerfile`, `app.yaml`
 
 **Responsibilities:**
-- Stdlib-only `node:http` + SSE UI: `GET /` (form + `<pre>` stream + replay button) · `POST /run { issue, issueId? } → { id }` · `GET /events/:id` (tail JSONL as SSE) · `GET /repro/:id` · `GET /replay/:id`
+- Stdlib-only `node:http` + SSE UI: `GET /` (form + live run-status + timeline + replay) · `POST /run { issue, issueId? } → { id }` · `GET /events/:id` (tail JSONL as SSE) · `GET /status/:id` (polling fallback) · `GET /repro/:id` · `GET /log/:id` · `GET /replay/:id` · `GET /fixtures/<name>` · `GET /healthz`
 - Same `LogEvent` schema as JSONL — one schema, two sinks; polling fallback noted if SSE gets fiddly
 - Container: `node:26-slim`, `npm ci --omit=dev`, `CMD node src/server.ts`; `runs/` + `repros/` ephemeral (no Spaces — keeps always-on at $5)
 - Deploy to $5 App Platform (1 shared vCPU / 512 MiB — the cap that justifies lane 1's memory limit); never touch harness logic, shell out to lane 2
 
 **Done when:** browser shows generate → 3 runs → sig streaming live; deploy reachable by judges.
 
-## Lane 4 — Skill + Demo + Entry
+## Lane 4 — Skill + Demo + Entry ✅ landed
 
 **Owns:** `SKILL.md`, `LICENSE`, `demo/`, README polish
 
