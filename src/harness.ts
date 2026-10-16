@@ -319,6 +319,7 @@ export async function runLoop(opts: LoopOptions): Promise<LoopResult> {
     const feedback = attempt === 0 ? null : describe(attempts[attempt - 1]);
     // A transport failure is not a repro failure — surface it rather than
     // silently burning the remaining attempts.
+    console.error(`[kag] attempt ${attempt + 1}/${MAX_ATTEMPTS}: requesting candidate`);
     const generated = await gen(opts.issue, moduleNames, feedback);
     usage.tokensIn += generated.usage.tokensIn;
     usage.tokensOut += generated.usage.tokensOut;
@@ -367,6 +368,7 @@ export async function runLoop(opts: LoopOptions): Promise<LoopResult> {
     };
     attempts.push(record);
     emit({ type: "verdict", attempt, verdict: renderOutcome(outcome), ts: now() });
+    console.error(`[kag] attempt ${attempt + 1}: ${renderOutcome(outcome)} [${sigs.join(" | ")}]`);
 
     if (outcome.verdict === "deterministic") {
       repro = generated.source;
@@ -663,6 +665,7 @@ async function main(): Promise<void> {
 
   const body = await readIssue(issue);
   const modules = argvModules ? readModuleDir(argvModules) : {};
+  console.error(`[kag] run ${id} started (${issue.startsWith("http") ? "remote issue" : "local file"})`);
   // Emitted immediately so a tailer sees the file exist before the first event.
   mkdirSync("runs", { recursive: true });
   mkdirSync("repros", { recursive: true });

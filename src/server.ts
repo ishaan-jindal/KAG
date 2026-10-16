@@ -171,7 +171,7 @@ async function readTail(file: string, maxBytes: number): Promise<string> {
 // ---------------------------------------------------------------------------
 // Active run tracking + shutdown
 
-type ActiveRun = { child: ChildProcess; pid: number; startedAt: number };
+type ActiveRun = { child: ChildProcess; pid: number; startedAt: number; firstLog?: NodeJS.Timeout };
 const activeRuns = new Map<string, ActiveRun>();
 let shuttingDown = false;
 
@@ -320,6 +320,8 @@ async function handlePostRun(req: IncomingMessage, res: ServerResponse): Promise
 
   activeRuns.set(id, { child, pid: child.pid ?? -1, startedAt: Date.now() });
   child.once("error", (err) => {
+    const rec = activeRuns.get(id);
+    if (rec?.firstLog) clearInterval(rec.firstLog);
     activeRuns.delete(id);
     // Spawn failed after we already answered 200: leave a tombstone so
     // /events and /status report the real cause instead of a bare 404.
@@ -327,11 +329,34 @@ async function handlePostRun(req: IncomingMessage, res: ServerResponse): Promise
     console.error(`[run ${id}] harness spawn error: ${err.message}`);
   });
   child.on("exit", (code, signal) => {
+    const rec = activeRuns.get(id);
+    if (rec?.firstLog) clearInterval(rec.firstLog);
     activeRuns.delete(id);
     console.log(`[run ${id}] harness exited (code=${code}, signal=${signal})`);
     if (shuttingDown && activeRuns.size === 0) process.exit(0);
   });
   child.unref();
+
+  const via = /^https?:\/\//i.test(trimmed) ? "url" : "pasted " + body.issue.length + " chars";
+  console.log(`[run ${id}] started via ${via} (pid=${child.pid ?? "?"})`);
+  // The harness writes its first log line only after the issue fetch plus the
+  // first inference round-trip — minutes on CPU. Surface that moment so the
+  // terminal shows progress instead of silence.
+  const probe = setInterval(() => {
+    if (shuttingDown || !activeRuns.has(id)) {
+      clearInterval(probe);
+      return;
+    }
+    if (existsSync(join(RUNS_DIR, `${id}.jsonl`))) {
+      clearInterval(probe);
+      const rec = activeRuns.get(id);
+      if (rec) rec.firstLog = undefined;
+      console.log(`[run ${id}] first log line (inference done, sandbox running)`);
+    }
+  }, 1000);
+  probe.unref();
+  const started = activeRuns.get(id);
+  if (started) started.firstLog = probe;
 
   json(res, 200, { id });
 }
@@ -747,6 +772,7 @@ function handleRoot(res: ServerResponse): void {
   button.primary:hover:not(:disabled) { background: #2ea043; }
   .btns { margin: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; }
   #formmsg { min-height: 1.4em; margin: 4px 0; color: #d29922; }
+  #runstat { min-height: 1.4em; margin: 4px 0; color: #79c0ff; }
   #banner { display: none; padding: 12px 14px; border-radius: 6px; margin: 16px 0;
             font-weight: 700; border: 1px solid #30363d; word-break: break-word; }
   #banner.det { background: #132a1c; border-color: #2ea043; color: #7ee787; }
@@ -782,6 +808,7 @@ function handleRoot(res: ServerResponse): void {
     </div>
   </form>
   <div id="formmsg"></div>
+  <div id="runstat"></div>
   <div id="banner"></div>
   <div id="timeline"></div>
   <div class="panel" id="reproPanel">
@@ -807,6 +834,7 @@ function handleRoot(res: ServerResponse): void {
 
   var id = null, es = null, pollTimer = null, busy = false;
   var allEvents = [], rendered = 0, terminal = false, pollFailures = 0;
+  var runstat = byId("runstat"), runClock = null, runT0 = 0;
 
   function setText(node, text) { node.textContent = text == null ? "" : String(text); }
   function el(tag, cls, text) {
@@ -835,6 +863,26 @@ function handleRoot(res: ServerResponse): void {
     if (ev.run != null) return ev.run;
     if (ev.runIndex != null) return ev.runIndex;
     return null;
+  }
+
+  function fmtDur(ms) {
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60); s = s % 60;
+    return (m < 10 ? "0" + m : "" + m) + ":" + (s < 10 ? "0" + s : "" + s);
+  }
+  function stopClock() { if (runClock) { clearInterval(runClock); runClock = null; } }
+  function startClock() {
+    stopClock(); runT0 = Date.now();
+    setText(runstat, "run " + id + " · waiting for first event 00:00 (inference can take minutes on CPU)");
+    runClock = setInterval(function () {
+      if (terminal || !id) { stopClock(); return; }
+      var streaming = allEvents.length > 0 || rendered > 0;
+      setText(runstat, "run " + id + (streaming ? " · streaming " : " · waiting for first event ") + fmtDur(Date.now() - runT0));
+    }, 1000);
+  }
+  function endClock() {
+    stopClock();
+    if (id && runT0) setText(runstat, "run " + id + " · done in " + fmtDur(Date.now() - runT0));
   }
 
   function renderEvent(ev) {
@@ -875,6 +923,7 @@ function handleRoot(res: ServerResponse): void {
   function showError(ev) {
     terminal = true;
     stopStreaming();
+    endClock();
     banner.className = "err";
     banner.style.display = "block";
     setText(banner, "error: " + (ev && ev.error != null ? String(ev.error) : "stream error"));
@@ -883,6 +932,7 @@ function handleRoot(res: ServerResponse): void {
   function showFinal(ev) {
     terminal = true;
     stopStreaming();
+    endClock();
     var raw = ev && ev.verdict != null ? String(ev.verdict) : "unknown";
     // Lane 2 emits the combined form "deterministic(crash)" / "cannot-repro(flaky)"
     // plus a structured mode field. Trust mode first; the parenthesized suffix is a
@@ -972,6 +1022,7 @@ function handleRoot(res: ServerResponse): void {
     terminal = false; allEvents = []; rendered = 0; pollFailures = 0;
     timeline.textContent = "";
     banner.style.display = "none"; banner.textContent = ""; banner.className = "";
+    setText(runstat, "");
     reproPanel.style.display = "none"; reproText.textContent = "";
     logText.textContent = ""; logText.style.display = "none"; actionmsg.textContent = "";
     setText(formmsg, "starting run…");
@@ -992,6 +1043,7 @@ function handleRoot(res: ServerResponse): void {
         id = data.id;
         setText(formmsg, "run " + id + " started" + (forcePoll ? " (polling)" : ""));
         if (forcePoll) startPolling(); else startSse();
+        startClock();
       } else {
         setText(formmsg, "unexpected response from /run");
       }
