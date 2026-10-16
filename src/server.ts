@@ -909,6 +909,12 @@ function handleRoot(res: ServerResponse): void {
       d.appendChild(el("summary", "", "generated candidate (" + lineCount(ev.source) + " lines)"));
       d.appendChild(el("pre", "", ev.source));
       card.appendChild(d);
+      if (ev && typeof ev.thinking === "string" && ev.thinking) {
+        var t = document.createElement("details");
+        t.appendChild(el("summary", "", "model thinking (" + ev.thinking.length + " chars)"));
+        t.appendChild(el("pre", "", ev.thinking));
+        card.appendChild(t);
+      }
     } else if (type !== "run" && type !== "verdict") {
       card.appendChild(el("pre", "", safeJson(ev)));
     }

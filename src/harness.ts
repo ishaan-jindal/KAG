@@ -39,7 +39,7 @@ export type Usage = { tokensIn: number; tokensOut: number };
 // renamed, so lane 3's JSONL-tail reader keeps working against old logs.
 
 export type LogEvent =
-  | { type: "generate"; attempt: number; model: string; source: string; ts: string; usage: Usage; truncated: boolean }
+  | { type: "generate"; attempt: number; model: string; source: string; ts: string; usage: Usage; truncated: boolean; thinking: string | null }
   | { type: "run"; attempt: number; run: number; signature: string; ts: string }
   | { type: "verdict"; attempt: number; verdict: string; ts: string }
   | {
@@ -186,7 +186,7 @@ const MODEL = process.env.DO_MODEL ?? "openai-gpt-oss-120b";
 // of that same budget, so 2048 truncated mid-file → invalid-candidate.
 const MAX_COMPLETION_TOKENS = Number(process.env.KAG_MAX_COMPLETION_TOKENS ?? 4000);
 
-export type GenerateResult = { source: string; usage: Usage; truncated: boolean };
+export type GenerateResult = { source: string; usage: Usage; truncated: boolean; thinking: string | null };
 
 export async function generate(
   issue: string,
@@ -214,7 +214,7 @@ export async function generate(
 
   const data = (await res.json()) as {
     choices?: Array<{
-      message?: { content?: string };
+      message?: { content?: string; reasoning?: string | null; reasoning_content?: string | null };
       finish_reason?: string | null;
     }>;
     usage?: { prompt_tokens?: number; completion_tokens?: number };
@@ -222,12 +222,15 @@ export async function generate(
 
   const choice = data.choices?.[0];
   const raw = choice?.message?.content ?? "";
+  // Ollama reports `reasoning`, DO Serverless Inference reports
+  // `reasoning_content`; non-reasoning models send neither.
+  const thinking = choice?.message?.reasoning ?? choice?.message?.reasoning_content ?? null;
   const usage: Usage = {
     tokensIn: data.usage?.prompt_tokens ?? 0,
     tokensOut: data.usage?.completion_tokens ?? 0,
   };
   const truncated = choice?.finish_reason === "length";
-  return { source: extractSource(raw), usage, truncated };
+  return { source: extractSource(raw), usage, truncated, thinking };
 }
 
 export function extractSource(text: string): string {
@@ -331,7 +334,11 @@ export async function runLoop(opts: LoopOptions): Promise<LoopResult> {
       ts: now(),
       usage: generated.usage,
       truncated: generated.truncated,
+      thinking: generated.thinking,
     });
+    if (generated.thinking) {
+      console.error(`[kag] attempt ${attempt + 1} thinking (${generated.thinking.length} chars): ${generated.thinking.slice(0, 800)}`);
+    }
 
     if (declaredNoRepro(generated.source)) {
       declared = true;

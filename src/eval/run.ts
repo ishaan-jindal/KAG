@@ -147,6 +147,7 @@ async function runEntry(entry: SuiteEntry, dry: boolean): Promise<EntryResult> {
           source: DRY_SOURCES[entry.id] ?? "// NO_REPRO\n",
           usage: { tokensIn: 0, tokensOut: 0 },
           truncated: false,
+          thinking: null,
         })
       : undefined,
   });
