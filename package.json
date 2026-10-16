@@ -1,0 +1,10 @@
+{
+  "name": "kag",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "kag": "node src/harness.ts",
+    "eval": "node src/eval/run.ts",
+    "start": "node src/server.ts"
+  }
+}
