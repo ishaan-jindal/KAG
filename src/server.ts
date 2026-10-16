@@ -754,63 +754,342 @@ function handleRoot(res: ServerResponse): void {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KAG — issue → minimal repro</title>
 <style>
-  :root { color-scheme: dark; }
+  :root {
+    --ink: #381631;
+    --punch: #e21c61;
+    --warm: #e26159;
+    --sun: #fea85f;
+    --paper: #d8dcb4;
+    --foam: #5eb6ad;
+    --teal: #1b958d;
+    --deep: #105390;
+    --display: "Arial Black", "Franklin Gothic Heavy", Impact, Haettenschweiler, "Arial Narrow Bold", system-ui, sans-serif;
+    --body: system-ui, -apple-system, "Segoe UI", Verdana, Geneva, Tahoma, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    color-scheme: light;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #0d1117; color: #e6edf3;
-         font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 72px; }
-  h1 { font-size: 18px; margin: 0 0 4px; }
-  h2 { font-size: 13px; margin: 0 0 10px; color: #8b949e; text-transform: uppercase; letter-spacing: .06em; }
-  .sub { color: #8b949e; margin-bottom: 16px; }
-  textarea { width: 100%; min-height: 140px; background: #161b22; color: #e6edf3;
-             border: 1px solid #30363d; border-radius: 6px; padding: 10px; font: inherit; resize: vertical; }
-  button { background: #21262d; color: #e6edf3; border: 1px solid #30363d; border-radius: 6px;
-           padding: 6px 12px; font: inherit; cursor: pointer; }
-  button:hover:not(:disabled) { background: #30363d; }
-  button:disabled { opacity: .5; cursor: default; }
-  button.primary { background: #238636; border-color: #2ea043; }
-  button.primary:hover:not(:disabled) { background: #2ea043; }
-  .btns { margin: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; }
-  #formmsg { min-height: 1.4em; margin: 4px 0; color: #d29922; }
-  #runstat { min-height: 1.4em; margin: 4px 0; color: #79c0ff; }
-  #banner { display: none; padding: 12px 14px; border-radius: 6px; margin: 16px 0;
-            font-weight: 700; border: 1px solid #30363d; word-break: break-word; }
-  #banner.det { background: #132a1c; border-color: #2ea043; color: #7ee787; }
-  #banner.cant { background: #2b230f; border-color: #9e6a03; color: #e3b341; }
-  #banner.err { background: #2d1418; border-color: #da3633; color: #ff7b72; }
-  #timeline { margin: 16px 0; display: grid; gap: 8px; }
-  .ev { border: 1px solid #30363d; border-radius: 6px; padding: 8px 10px; background: #111820; }
-  .ev .tag { font-weight: 700; margin-right: 8px; }
-  .ev.generate .tag { color: #79c0ff; }
-  .ev.run .tag { color: #d2a8ff; }
-  .ev.verdict .tag { color: #7ee787; }
-  .ev.raw .tag { color: #ffa657; }
-  .ev .meta { color: #8b949e; }
-  .ev .ok { color: #7ee787; }
-  .ev .bad { color: #ff7b72; }
-  pre { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;
-        overflow: auto; max-height: 340px; white-space: pre-wrap; word-break: break-word; margin: 8px 0 0; }
-  details summary { cursor: pointer; color: #8b949e; margin-top: 6px; }
-  .panel { border: 1px solid #30363d; border-radius: 6px; padding: 12px; margin: 12px 0; display: none; }
-  #actionmsg { min-height: 1.4em; color: #79c0ff; margin: 8px 0; word-break: break-word; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background-color: var(--paper);
+    background-image: repeating-radial-gradient(circle at 10px 10px, rgba(56,22,49,.16) 0, rgba(56,22,49,.16) 1.6px, transparent 1.6px, transparent 12px);
+    color: var(--ink);
+    font: 16px/1.55 var(--body);
+    overflow-x: clip;
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 28px 18px 72px; min-width: 0; }
+  :focus-visible { outline: 3px solid #e21c61; outline-offset: 2px; border-radius: 2px; }
+
+  /* ---- hero ---- */
+  .hero {
+    background: var(--ink);
+    color: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--punch);
+    padding: 22px 22px 20px;
+    margin-bottom: 22px;
+    position: relative;
+    overflow: clip;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: auto -30px -46px auto;
+    width: 190px;
+    height: 190px;
+    background-image: repeating-radial-gradient(circle at 6px 6px, rgba(254,168,95,.55) 0, rgba(254,168,95,.55) 2.2px, transparent 2.2px, transparent 11px);
+    transform: rotate(12deg);
+    pointer-events: none;
+  }
+  .stickers { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; position: relative; z-index: 1; }
+  .sticker {
+    font-family: var(--display);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    border: 3px solid var(--ink);
+    padding: 4px 12px;
+    background: var(--punch);
+    color: var(--paper);
+    transform: rotate(-2deg);
+    box-shadow: 3px 3px 0 rgba(216,220,180,.85);
+  }
+  .sticker.s2 { background: var(--foam); color: var(--ink); transform: rotate(1.6deg); }
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(30px, 5.4vw, 48px);
+    line-height: 1.02;
+    text-transform: uppercase;
+    letter-spacing: .01em;
+    margin: 0 0 10px;
+    position: relative;
+    z-index: 1;
+  }
+  h1 .hl {
+    display: inline-block;
+    background: var(--sun);
+    color: var(--ink);
+    padding: 0 10px;
+    border: 3px solid var(--paper);
+    transform: rotate(-1deg);
+  }
+  .sub { color: var(--paper); opacity: .92; margin: 0; max-width: 62ch; position: relative; z-index: 1; }
+  .steps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; position: relative; z-index: 1; }
+  .steps span {
+    font-family: var(--display);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    border: 2px solid var(--paper);
+    padding: 3px 10px;
+    color: var(--paper);
+  }
+
+  /* ---- cards ---- */
+  .card {
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: 18px;
+    margin: 0 0 20px;
+  }
+  .kicker {
+    display: inline-block;
+    font-family: var(--display);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 5px 12px;
+    transform: rotate(-1deg);
+    margin-bottom: 12px;
+  }
+  .kicker.sun { background: var(--sun); color: var(--ink); border: 3px solid var(--ink); transform: rotate(1deg); }
+  label.fld {
+    display: inline-block;
+    font-family: var(--display);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 8px;
+  }
+  textarea {
+    width: 100%;
+    max-width: 100%;
+    min-height: 140px;
+    background: var(--ink);
+    color: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--teal);
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    display: block;
+  }
+  textarea::placeholder { color: var(--foam); opacity: 1; }
+  .btns { margin: 14px 0 2px; display: flex; flex-wrap: wrap; gap: 10px; }
+  button {
+    font-family: var(--display);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    background: var(--sun);
+    color: var(--ink);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 10px 18px;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+  button:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+  button:disabled { opacity: .55; cursor: default; transform: none; }
+  button.primary { background: var(--punch); color: var(--paper); }
+  #copyRepro { background: var(--teal); color: var(--paper); }
+  #toggleLog { background: var(--paper); }
+  #formmsg { min-height: 1.4em; margin: 10px 0 0; font-weight: 700; color: var(--deep); overflow-wrap: anywhere; }
+  #runstat {
+    display: inline-block;
+    min-height: 1.4em;
+    margin: 6px 0 0;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    background: var(--sun);
+    border: 3px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    padding: 3px 10px;
+    overflow-wrap: anywhere;
+  }
+  #runstat:empty { display: none; }
+
+  /* ---- verdict banner ---- */
+  #banner {
+    display: none;
+    padding: 14px 16px;
+    margin: 20px 0;
+    font-family: var(--display);
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    transform: rotate(-.4deg);
+    overflow-wrap: anywhere;
+  }
+  #banner.det { background: var(--foam); color: var(--ink); }
+  #banner.cant { background: var(--sun); color: var(--ink); }
+  #banner.err { background: var(--punch); color: var(--paper); }
+
+  /* ---- timeline ---- */
+  #timeline { margin: 14px 0 20px; display: grid; gap: 14px; }
+  #timeline:empty { display: none; }
+  .ev {
+    border: 3px solid var(--ink);
+    border-left-width: 12px;
+    background: var(--paper);
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 10px 12px;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .ev.generate { border-left-color: var(--deep); }
+  .ev.run { border-left-color: var(--teal); }
+  .ev.verdict { border-left-color: var(--punch); }
+  .ev.raw { border-left-color: var(--warm); }
+  .ev .tag {
+    display: inline-block;
+    font-family: var(--display);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    border: 2px solid var(--ink);
+    padding: 2px 10px;
+    margin: 0 8px 4px 0;
+    transform: rotate(-1deg);
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .ev.generate .tag { background: var(--deep); color: var(--paper); }
+  .ev.run .tag { background: var(--teal); color: var(--paper); }
+  .ev.verdict .tag { background: var(--punch); color: var(--paper); }
+  .ev.raw .tag { background: var(--sun); color: var(--ink); }
+  .ev .meta { color: var(--ink); opacity: .78; font-family: var(--mono); font-size: 13px; }
+  .ev .ok { color: var(--deep); font-weight: 800; }
+  .ev .bad { color: var(--punch); font-weight: 800; }
+
+  pre {
+    background: var(--ink);
+    color: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--teal);
+    padding: 10px 12px;
+    overflow: auto;
+    max-width: 100%;
+    max-height: 340px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 8px 0 0;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  details { margin-top: 8px; }
+  details summary {
+    cursor: pointer;
+    display: inline-block;
+    font-family: var(--display);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--paper);
+    background: var(--warm);
+    border: 2px solid var(--ink);
+    padding: 3px 10px;
+  }
+
+  /* ---- repro panel ---- */
+  .panel {
+    border: 3px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    background: var(--foam);
+    padding: 18px;
+    margin: 12px 0;
+    display: none;
+  }
+  .panel h2 {
+    display: inline-block;
+    font-family: var(--display);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 5px 14px;
+    margin: 0 0 6px;
+    transform: rotate(-1deg);
+  }
+  #actionmsg { min-height: 1.4em; font-weight: 700; margin: 8px 0; overflow-wrap: anywhere; }
+  footer.foot {
+    margin-top: 22px;
+    border: 3px solid var(--ink);
+    background: var(--paper);
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  @media (max-width: 640px) {
+    main { padding: 16px 12px 56px; }
+    .hero { box-shadow: 5px 5px 0 var(--punch); padding: 18px 16px; }
+    .hero::after { display: none; }
+    .card, .panel { padding: 14px; box-shadow: 4px 4px 0 var(--ink); }
+    .btns { flex-direction: column; align-items: stretch; }
+    .btns button { width: 100%; }
+    #banner { transform: none; }
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>KAG — issue → minimal repro</h1>
-  <div class="sub">Paste an issue (text or URL). The harness generates a candidate, runs it 3×, and gates a verdict.</div>
-  <form id="f">
-    <textarea id="issue" placeholder="Paste issue text or https://github.com/owner/repo/issues/123"></textarea>
-    <div class="btns">
-      <button type="submit" id="run" class="primary">Run</button>
-      <button type="button" data-fixture="crash-deterministic">fixture: crash-deterministic</button>
-      <button type="button" data-fixture="flaky-race">fixture: flaky-race</button>
+  <header class="hero">
+    <div class="stickers" aria-hidden="true">
+      <span class="sticker s1">runs it 3x</span>
+      <span class="sticker s2">issue to repro</span>
     </div>
-  </form>
-  <div id="formmsg"></div>
-  <div id="runstat"></div>
-  <div id="banner"></div>
-  <div id="timeline"></div>
+    <h1>KAG — issue → <span class="hl">minimal repro</span></h1>
+    <p class="sub">Paste an issue (text or URL). The harness generates a candidate, runs it 3×, and gates a verdict.</p>
+    <div class="steps" aria-hidden="true">
+      <span>paste</span>
+      <span>candidate</span>
+      <span>verdict</span>
+    </div>
+  </header>
+  <section class="card" aria-label="start a run">
+    <span class="kicker">01 - paste the issue</span>
+    <form id="f">
+      <label class="fld" for="issue">Issue text or link</label>
+      <textarea id="issue" placeholder="Paste issue text or https://github.com/owner/repo/issues/123"></textarea>
+      <div class="btns">
+        <button type="submit" id="run" class="primary">Run</button>
+        <button type="button" data-fixture="crash-deterministic">fixture: crash-deterministic</button>
+        <button type="button" data-fixture="flaky-race">fixture: flaky-race</button>
+      </div>
+    </form>
+    <div id="formmsg" role="status"></div>
+    <div id="runstat" role="status"></div>
+  </section>
+  <div id="banner" role="status"></div>
+  <section aria-label="run timeline">
+    <span class="kicker sun">02 - watch the run</span>
+    <div id="timeline"></div>
+  </section>
   <div class="panel" id="reproPanel">
     <h2>minimal repro</h2>
     <div class="btns">
@@ -818,10 +1097,11 @@ function handleRoot(res: ServerResponse): void {
       <button type="button" id="cReplay">replay</button>
       <button type="button" id="toggleLog">raw log</button>
     </div>
-    <div id="actionmsg"></div>
+    <div id="actionmsg" role="status"></div>
     <pre id="reproText"></pre>
     <pre id="logText" style="display:none"></pre>
   </div>
+  <footer class="foot">harness generates - runs 3x - gates a verdict</footer>
 </main>
 <script>
 (function () {
