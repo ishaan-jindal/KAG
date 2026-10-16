@@ -86,7 +86,7 @@ Closed verdict set only: `deterministic(crash|hang)` · `cannot-repro {no-failur
 5. `export DO_INFERENCE_URL=http://<droplet>:11434/v1` → rerun on GPU Ollama
 6. `doctl compute droplet delete` + cost receipt
 
-## Repo layout (planned)
+## Repo layout
 
 ```
 SKILL.md            # Agent Skill (Open Standard) — wraps KAG
@@ -95,30 +95,49 @@ src/tools.ts        # sandbox exec, trace parse
 src/verify.ts       # determinism gate (3× same fail)
 src/server.ts       # HTTP + SSE UI, stdlib only
 src/eval/           # 5 fixtures + suite.json + run.ts scorer
-Dockerfile, app.yaml # NICE → DEMO when judging is remote
-demo/               # 6-beat checklist, not code
-LICENSE             # MIT
+Dockerfile, app.yaml # App Platform container configuration
+demo/               # 6-beat checklist & runbook for judges
+LICENSE             # MIT License
+TEAM.md             # Multi-lane responsibilities & frozen contracts
 ```
 
-## Quickstart (planned)
+## Quickstart
 
 ```bash
+# 1. Install dependencies
 npm i
+
+# 2. Configure model inference (DO Serverless or Ollama)
 export DO_INFERENCE_KEY=...
-export DO_MODEL=qwen3.5-397b-a17b
-npm run kag -- --issue https://github.com/org/repo/issues/42
-# → ./repros/42.repro.ts + ./runs/42.jsonl
-# --replay re-runs stored sources and diffs sigs
+export DO_MODEL=openai-gpt-oss-120b # or qwen3.5-397b-a17b
+
+# 3. Run harness against an issue or fixture
+npm run kag -- --issue src/eval/fixtures/crash-deterministic.md
+# → Generates ./repros/<id>.repro.ts and ./runs/<id>.jsonl
+
+# 4. Verify replay integrity
+npm run kag -- --replay <id>
+
+# 5. Run evaluation suite
+npm run eval
+
+# 6. Start local Web UI & SSE server (port 8080)
+npm start
 ```
 
-Headless: `POST /run { issue }`. GPU swap: `export DO_INFERENCE_URL=http://<droplet>:11434/v1`.
+Headless API: `POST /run { "issue": "..." }`. GPU swap: `export DO_INFERENCE_URL=http://<droplet>:11434/v1`.
 
 ## Status
 
-Scaffold phase. README-first. Build order: `tools.ts` → `verify.ts` → `harness.ts` → `eval/` → `server.ts` → `Dockerfile/app.yaml` → `SKILL.md` + `LICENSE` → demo rehearsal. No harness code yet.
+Active multi-lane implementation in progress per [TEAM.md](TEAM.md):
+- **Lane 1 (Sandbox + Gate):** `src/tools.ts`, `src/verify.ts`
+- **Lane 2 (Loop + Eval):** `src/harness.ts`, `src/eval/`
+- **Lane 3 (UI + Deploy):** `src/server.ts`, `Dockerfile`, `app.yaml`
+- **Lane 4 (Skill + Demo + Entry):** `SKILL.md`, `LICENSE`, `demo/CHECKLIST.md`, README
 
-Stretch (after green): leaderboard post, GitHub App webhook, Spaces persistence, multi-file repo checkouts, flake-bisect. None started.
+See [`demo/CHECKLIST.md`](demo/CHECKLIST.md) for the ~6-minute judge demonstration script.
 
 ## License
 
-MIT — will be added with scaffold. Public release planned for challenge entry.
+[MIT License](LICENSE) — Copyright (c) 2026 KAG contributors.
+
