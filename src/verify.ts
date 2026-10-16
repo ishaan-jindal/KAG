@@ -4,8 +4,10 @@ export type GateVerdict = "deterministic" | "no-failure" | "flaky" | "invalid-ca
 function isLoadError(sig: string): boolean {
   return (
     sig.includes("ERR_MODULE_NOT_FOUND") ||
+    sig.includes("ERR_UNKNOWN_FILE_EXTENSION") ||
     sig.includes("SyntaxError") ||
-    sig.includes("Cannot find module")
+    sig.includes("Cannot find module") ||
+    sig.includes("Cannot find package")
   );
 }
 
@@ -17,3 +19,5 @@ export function gate(sigs: [string, string, string]): GateVerdict {
   if (s1 === s2 && s2 === s3) return isLoadError(s1) ? "invalid-candidate" : "deterministic";
   return "flaky";
 }
+
+export const mode = (sig: string) => (sig === "TIMEOUT" ? "hang" : "crash");
