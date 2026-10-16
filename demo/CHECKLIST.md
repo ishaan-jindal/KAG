@@ -18,7 +18,7 @@
 ## 1. Deterministic Crash: SSE Stream (Beat 1)
 
 ### Input to Paste
-Copy and paste the contents of [`src/eval/fixtures/crash-deterministic.md`](file:///c:/Users/aarya/KAG/src/eval/fixtures/crash-deterministic.md) into the web UI or pass via CLI:
+Copy and paste the contents of [`src/eval/fixtures/crash-deterministic.md`](../src/eval/fixtures/crash-deterministic.md) into the web UI or pass via CLI:
 
 ```markdown
 Calling load({}) throws TypeError: Cannot read properties of undefined.
@@ -85,7 +85,7 @@ cat repros/*.repro.ts
 > ⚠️ **CRITICAL: NEVER CUT THIS BEAT.** This demonstrates that KAG refuses to hallucinate passing repros.
 
 ### Input to Paste
-Copy and paste the contents of [`src/eval/fixtures/flaky-race.md`](file:///c:/Users/aarya/KAG/src/eval/fixtures/flaky-race.md):
+Copy and paste the contents of [`src/eval/fixtures/flaky-race.md`](../src/eval/fixtures/flaky-race.md):
 
 ```markdown
 queue.push(job) intermittently throws RangeError: buffer full.
