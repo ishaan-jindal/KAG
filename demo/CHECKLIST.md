@@ -4,16 +4,14 @@
 
 ---
 
-## Timing Breakdown
+## Timing Breakdown & Checklist
 
-| Beat | Topic | Duration | Key Visual / Action |
-|---|---|---|---|
-| **Beat 1** | Deterministic Crash | 0:00 – 1:30 (1.5 min) | Paste issue text → live SSE stream (generate + 3 runs + normalized sig) |
-| **Beat 2** | Minimal Repro Inspection | 1:30 – 2:30 (1.0 min) | Inspect standalone `< 20 LOC` generated `repros/<id>.repro.ts` |
-| **Beat 3** | Replay Verification | 2:30 – 3:00 (0.5 min) | Click **Replay** → diff against `runs/<id>.jsonl` → identical signature |
-| **Beat 4** | Flaky Race (Trust Beat) | 3:00 – 4:30 (1.5 min) | Paste race issue → divergent runs → `cannot-repro (flaky)` |
-| **Beat 5** | GPU Droplet Swap Flex | 4:30 – 5:30 (1.0 min) | `export DO_INFERENCE_URL=...` → run on GPU Ollama with zero code changes |
-| **Beat 6** | Teardown & Cost Receipt | 5:30 – 6:00 (0.5 min) | `doctl compute droplet delete` → show total session spend < $5 |
+- [ ] **Beat 1: Deterministic Crash** (0:00 – 1:30, 1.5 min) — Paste issue text → live SSE stream (generate + 3 runs + normalized sig)
+- [ ] **Beat 2: Minimal Repro Inspection** (1:30 – 2:30, 1.0 min) — Inspect standalone `< 20 LOC` generated `repros/<id>.repro.ts`
+- [ ] **Beat 3: Replay Verification** (2:30 – 3:00, 0.5 min) — Click **Replay** → diff against `runs/<id>.jsonl` → identical signature
+- [ ] **Beat 4: Flaky Race (Trust Beat)** (3:00 – 4:30, 1.5 min) — Paste race issue → divergent runs → `cannot-repro {flaky}` (Never Cut)
+- [ ] **Beat 5: GPU Droplet Swap Flex** (4:30 – 5:30, 1.0 min) — `export DO_INFERENCE_URL=...` → run on GPU Ollama with zero code changes
+- [ ] **Beat 6: Teardown & Cost Receipt** (5:30 – 6:00, 0.5 min) — `doctl compute droplet delete` → show total session spend < $5
 
 ---
 
@@ -44,9 +42,9 @@ Stack points at config.ts:12 reading .name.
    ```text
    EXIT:1|TypeError|load:config.ts:12
    ```
-4. **Gate Evaluation:** 3× identical signatures trigger:
+4. **Gate Evaluation:** 3× identical signatures trigger the frozen contract verdict:
    ```text
-   verdict: deterministic (crash)
+   verdict: deterministic(crash)
    ```
 
 ---
@@ -103,9 +101,9 @@ Do not bless a single passing run as proof.
    - Run 1: `NO_FAIL` (passed)
    - Run 2: `EXIT:1|RangeError|push:queue.ts:44`
    - Run 3: `NO_FAIL` (passed)
-3. Mixed signatures trigger the **Honest-Negative Rule**:
+3. Mixed signatures trigger the **Honest-Negative Rule** and the frozen contract verdict:
    ```text
-   verdict: cannot-repro (flaky)
+   verdict: cannot-repro {flaky}
    ```
 4. **Takeaway:** KAG will never pretend a flaky or unreproducible bug is solved.
 
